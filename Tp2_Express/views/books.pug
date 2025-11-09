@@ -1,0 +1,11 @@
+doctype html
+html
+  head
+    title Liste des livres
+  body
+    h2 Bienvenue #{user.username} !
+    h3 Liste des livres disponibles :
+    ul
+      each book in books
+        li #{book.title} - #{book.author}
+    a(href="/logout") Se déconnecter
