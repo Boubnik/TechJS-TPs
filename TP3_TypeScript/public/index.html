@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>📚 Book Reading Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 p-6">
+  <h1 class="text-3xl font-bold text-center mb-6">📖 Book Reading Tracker</h1>
+
+  <!-- Global Stats Section -->
+  <div id="globalStats" class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-6 mb-8 flex flex-wrap justify-around text-center">
+    <div>
+      <h3 class="text-xl font-semibold text-blue-700">📚 Total Books</h3>
+      <p id="totalBooks" class="text-2xl font-bold mt-2 text-gray-800">0</p>
+    </div>
+    <div>
+      <h3 class="text-xl font-semibold text-green-700">📄 Total Pages</h3>
+      <p id="totalPages" class="text-2xl font-bold mt-2 text-gray-800">0</p>
+    </div>
+    <div>
+      <h3 class="text-xl font-semibold text-indigo-700">✅ Pages Read</h3>
+      <p id="totalPagesRead" class="text-2xl font-bold mt-2 text-gray-800">0</p>
+    </div>
+    <div>
+      <h3 class="text-xl font-semibold text-amber-700">📊 Progress</h3>
+      <p id="overallProgress" class="text-2xl font-bold mt-2 text-gray-800">0%</p>
+    </div>
+  </div>
+
+  <!-- Form Section -->
+  <form id="bookForm" class="bg-white shadow-lg rounded-lg p-6 max-w-lg mx-auto space-y-4">
+    <input class="w-full border p-2 rounded" placeholder="Title" name="title" required>
+    <input class="w-full border p-2 rounded" placeholder="Author" name="author" required>
+    <input class="w-full border p-2 rounded" type="number" placeholder="Pages" name="pages" required>
+    <input class="w-full border p-2 rounded" type="number" placeholder="Price" name="price" required>
+    <input class="w-full border p-2 rounded" type="number" placeholder="Pages Read" name="pagesRead" required>
+    <input class="w-full border p-2 rounded" placeholder="Suggested By" name="suggestedBy">
+
+    <select name="status" class="w-full border p-2 rounded">
+      <option>Read</option>
+      <option>Re-read</option>
+      <option>DNF</option>
+      <option>Currently reading</option>
+      <option>Returned Unread</option>
+      <option>Want to read</option>
+    </select>
+
+    <select name="format" class="w-full border p-2 rounded">
+      <option>Print</option>
+      <option>PDF</option>
+      <option>Ebook</option>
+      <option>AudioBook</option>
+    </select>
+
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded w-full hover:bg-blue-700 transition">
+      ➕ Add Book
+    </button>
+  </form>
+
+  <!-- Books Table Section -->
+  <div id="booksList" class="mt-10 max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+    <h2 class="text-2xl font-semibold mb-4 text-center">📚 Your Books</h2>
+    <div class="overflow-x-auto">
+      <table class="min-w-full border border-gray-300 text-sm text-left">
+        <thead class="bg-gray-200 text-gray-700">
+          <tr>
+            <th class="px-4 py-2 border">#</th>
+            <th class="px-4 py-2 border">Title</th>
+            <th class="px-4 py-2 border">Author</th>
+            <th class="px-4 py-2 border">Pages</th>
+            <th class="px-4 py-2 border">Read</th>
+            <th class="px-4 py-2 border">Progress</th>
+            <th class="px-4 py-2 border">Status</th>
+            <th class="px-4 py-2 border">Format</th>
+            <th class="px-4 py-2 border">Suggested By</th>
+            <th class="px-4 py-2 border">Finished</th>
+          </tr>
+        </thead>
+        <tbody id="booksTableBody" class="divide-y divide-gray-100">
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+
+  <script>
+    const form = document.getElementById('bookForm');
+    const booksTableBody = document.getElementById('booksTableBody');
+    const totalBooks = document.getElementById('totalBooks');
+    const totalPages = document.getElementById('totalPages');
+    const totalPagesRead = document.getElementById('totalPagesRead');
+    const overallProgress = document.getElementById('overallProgress');
+
+    async function loadBooks() {
+      const res = await fetch('/api/books');
+      const books = await res.json();
+
+      if (!books.length) {
+        booksTableBody.innerHTML = `
+          <tr>
+            <td colspan="10" class="text-center text-gray-500 py-4">
+              No books added yet 📭
+            </td>
+          </tr>`;
+        updateStats([]);
+        return;
+      }
+
+      booksTableBody.innerHTML = books.map((b, i) => `
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-2 border text-gray-600">${i + 1}</td>
+          <td class="px-4 py-2 border font-medium">${b.title}</td>
+          <td class="px-4 py-2 border">${b.author}</td>
+          <td class="px-4 py-2 border text-center">${b.pages}</td>
+          <td class="px-4 py-2 border text-center">${b.pagesRead}</td>
+          <td class="px-4 py-2 border text-center">
+            ${(b.pages ? (b.pagesRead / b.pages * 100).toFixed(1) : 0)}%
+          </td>
+          <td class="px-4 py-2 border text-center">${b.status}</td>
+          <td class="px-4 py-2 border text-center">${b.format}</td>
+          <td class="px-4 py-2 border text-center">${b.suggestedBy || '-'}</td>
+          <td class="px-4 py-2 border text-center">${b.finished ? '✅' : '📖'}</td>
+        </tr>
+      `).join('');
+
+      updateStats(books);
+    }
+
+    function updateStats(books) {
+      const total = books.length;
+      const totalPageCount = books.reduce((sum, b) => sum + (b.pages || 0), 0);
+      const totalReadCount = books.reduce((sum, b) => sum + (b.pagesRead || 0), 0);
+      const progress = totalPageCount ? ((totalReadCount / totalPageCount) * 100).toFixed(1) : 0;
+
+      totalBooks.textContent = total;
+      totalPages.textContent = totalPageCount;
+      totalPagesRead.textContent = totalReadCount;
+      overallProgress.textContent = progress + '%';
+    }
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const formData = Object.fromEntries(new FormData(form));
+      formData.pages = Number(formData.pages);
+      formData.pagesRead = Number(formData.pagesRead);
+      formData.price = Number(formData.price);
+
+      await fetch('/api/books', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      form.reset();
+      loadBooks();
+    });
+
+    loadBooks();
+  </script>
+</body>
+</html>
